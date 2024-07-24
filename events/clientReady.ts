@@ -5,5 +5,5 @@ export const name = Events.ClientReady;
 export const once = true;
 
 export const execute = (client: Client) => {
-    console.log(`Logged in as "${client.user?.tag}"!`);
+  console.log(`Logged in as "${client.user?.tag}"!`);
 };

@@ -1,52 +1,65 @@
 import { Client, Collection, GatewayIntentBits } from "discord.js";
-import { readdirSync } from "fs";
-import path from "path";
-import { Command, Event } from "./types";
-import { configDotenv } from "dotenv";
+import fs from "node:fs";
+import path from "node:path";
+import { DISCORD_TOKEN } from "./config";
+import { ClientEvent } from "./types/clientEvent";
+import { Command } from "./types/command";
 
-configDotenv();
+declare module "discord.js" {
+  interface Client {
+    commands: Collection<string, Command>;
+  }
+}
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-    ],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
-
 client.commands = new Collection();
 
 // Load commands
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = readdirSync(foldersPath);
+(async () => {
+  const foldersPath = path.join(__dirname, "commands");
+  const commandFolders = fs.readdirSync(foldersPath);
 
-for (const folder of commandFolders) {
+  for (const folder of commandFolders) {
     const commandsPath = path.join(foldersPath, folder);
-    const commandFiles = readdirSync(commandsPath).map(file => path.parse(file).name);
+    const commandFiles = fs
+      .readdirSync(commandsPath)
+      .map((file) => path.parse(file).name);
+
     for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        import(filePath).then((command: Command) => {
-            if ('data' in command && 'execute' in command) {
-                client.commands.set(command.data.name, command);
-            } else {
-                console.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
-            }
-        });
+      const filePath = path.join(commandsPath, file);
+      const command: Command = await import(filePath);
+
+      if ("data" in command && "execute" in command) {
+        client.commands.set(command.data.name, command);
+      } else {
+        console.warn(
+          `The command at ${filePath} is missing a required "data" or "execute" property.`
+        );
+      }
     }
-}
+  }
+})();
 
 // Load events
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = readdirSync(eventsPath).map(file => path.parse(file).name);
-for (const file of eventFiles) {
+(async () => {
+  const eventsPath = path.join(__dirname, "events");
+  const eventFiles = fs
+    .readdirSync(eventsPath)
+    .map((file) => path.parse(file).name);
+
+  for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
-    import(filePath).then((event: Event) => {
-        if (event.once) {
-            client.once(event.name, event.execute);
-        } else {
-            client.on(event.name, event.execute);
-        }
-    });
-}
+    const event: ClientEvent = await import(filePath);
+
+    if (event.once) {
+      client.once(event.name, event.execute);
+    } else {
+      client.on(event.name, event.execute);
+    }
+  }
+})();
 
 // Login
-client.login();
+client.login(DISCORD_TOKEN);
