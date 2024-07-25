@@ -35,7 +35,7 @@ client.commands = new Collection();
         client.commands.set(command.data.name, command);
       } else {
         console.warn(
-          `The command at ${filePath} is missing a required "data" or "execute" property.`
+          `The command at ${filePath} is missing a required "data" or "execute" property.`,
         );
       }
     }
