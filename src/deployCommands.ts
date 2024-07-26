@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 
 import {
@@ -10,20 +10,22 @@ import { CLIENT_ID, DISCORD_TOKEN, GUILD_ID } from "./config";
 import { Command } from "./types/command";
 
 (async () => {
+  // Load commands
   const commands: RESTPatchAPIApplicationCommandJSONBody[] = [];
 
-  // Load commands
   const foldersPath = path.join(__dirname, "commands");
-  const commandFolders = readdirSync(foldersPath);
+  const commandFolders = fs.readdirSync(foldersPath);
 
   for (const folder of commandFolders) {
     const commandsPath = path.join(foldersPath, folder);
-    const commandFiles = readdirSync(commandsPath).map(
-      (file) => path.parse(file).name,
-    );
+    const commandFiles = fs
+      .readdirSync(commandsPath)
+      .map((file) => path.parse(file).name);
+
     for (const file of commandFiles) {
       const filePath = path.join(commandsPath, file);
       const command: Command = await import(filePath);
+
       if ("data" in command && "execute" in command) {
         commands.push(command.data.toJSON());
       } else {
